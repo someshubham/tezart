@@ -116,6 +116,8 @@ class Operation {
     if (value == null) throw ArgumentError.notNull('simulationResult');
 
     _simulationResult = value;
+    fee = int.tryParse(value['metadata']['operation_result']['consumed_gas']) ??
+        0;
     SimulationResultValidator(_simulationResult!).validate();
   }
 

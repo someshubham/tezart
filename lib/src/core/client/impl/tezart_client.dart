@@ -111,8 +111,8 @@ class TezartClient {
             ..appendOperation(
               TransactionOperation(
                 entrypoint: 'transfer',
-                amount: amount,
-                destination: destination,
+                amount: 0,
+                destination: contractAddress,
                 customFee: customFee,
                 customGasLimit: customGasLimit,
                 customStorageLimit: customStorageLimit,
@@ -179,8 +179,8 @@ class TezartClient {
           OperationsList(source: source, rpcInterface: rpcInterface)
             ..appendOperation(
               TransactionOperation(
-                amount: amount,
-                destination: destination,
+                amount: 0,
+                destination: contractAddress,
                 customFee: customFee,
                 customGasLimit: customGasLimit,
                 customStorageLimit: customStorageLimit,
