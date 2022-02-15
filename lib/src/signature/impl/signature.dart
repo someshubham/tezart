@@ -7,6 +7,7 @@ import 'package:tezart/src/common/validators/hex_validator.dart';
 import 'package:tezart/src/keystore/keystore.dart';
 
 import 'package:tezart/src/crypto/crypto.dart' as crypto;
+import 'package:tezart/src/models/operations_list/impl/operations_list.dart';
 
 enum Watermarks {
   block,
@@ -26,6 +27,7 @@ class Signature extends Equatable {
   final Uint8List bytes;
   final Keystore keystore;
   final Watermarks? watermark;
+  final SignCallback? onSign;
 
   static final _watermarkToHex = {
     Watermarks.block: '01',
@@ -33,13 +35,28 @@ class Signature extends Equatable {
     Watermarks.generic: '03',
   };
 
-  Signature._({required this.bytes, required this.keystore, this.watermark});
+  Signature._({
+    required this.bytes,
+    required this.keystore,
+    this.watermark,
+    this.onSign,
+  });
 
   /// A factory that computes the signature of [bytes] (prefixed by [watermark]) using [keystore].
   ///
   /// [watermark] is optional and will be ignored if missing.
-  factory Signature.fromBytes({required Uint8List bytes, required Keystore keystore, Watermarks? watermark}) {
-    return Signature._(bytes: bytes, watermark: watermark, keystore: keystore);
+  factory Signature.fromBytes({
+    required Uint8List bytes,
+    required Keystore keystore,
+    Watermarks? watermark,
+    SignCallback? onSign,
+  }) {
+    return Signature._(
+      bytes: bytes,
+      watermark: watermark,
+      keystore: keystore,
+      onSign: onSign,
+    );
   }
 
   /// A factory that computes the signature of hexadecimal [data] (prefixed by [watermark]) using [keystore].\
@@ -48,25 +65,39 @@ class Signature extends Equatable {
   /// Throws a [CryptoError] if :
   /// - [data] is not hexadecimal
   /// - [data] length is odd (because it must be the hexadecimal of a list of bytes (a single byte represent two hexadecimal digits))
-  factory Signature.fromHex({required String data, required Keystore keystore, Watermarks? watermark}) {
+  factory Signature.fromHex({
+    required String data,
+    required Keystore keystore,
+    Watermarks? watermark,
+    SignCallback? onSign,
+  }) {
     return crypto.catchUnhandledErrors(() {
       HexValidator(data).validate();
       // Because two hexadecimal digits correspond to a single byte, this will throw an error if the length of the data is odd
       if (data.length.isOdd) {
-        throw crypto.CryptoError(type: crypto.CryptoErrorTypes.invalidHexDataLength);
+        throw crypto.CryptoError(
+            type: crypto.CryptoErrorTypes.invalidHexDataLength);
       }
       var bytes = crypto.hexDecode(data);
 
-      return Signature.fromBytes(bytes: bytes, keystore: keystore, watermark: watermark);
+      return Signature.fromBytes(
+        bytes: bytes,
+        keystore: keystore,
+        watermark: watermark,
+        onSign: onSign,
+      );
     });
   }
 
   /// Signed bytes of this.
   ByteList get signedBytes {
     return crypto.catchUnhandledErrors(() {
-      final watermarkedBytes =
-          watermark == null ? bytes : Uint8List.fromList(crypto.hexDecode(_watermarkToHex[watermark]!) + bytes);
-      var hashedBytes = crypto.hashWithDigestSize(size: 256, bytes: watermarkedBytes);
+      final watermarkedBytes = watermark == null
+          ? bytes
+          : Uint8List.fromList(
+              crypto.hexDecode(_watermarkToHex[watermark]!) + bytes);
+      var hashedBytes =
+          crypto.hashWithDigestSize(size: 256, bytes: watermarkedBytes);
       var secretKey = keystore.secretKey;
       var secretKeyBytes = crypto.decodeWithoutPrefix(secretKey);
 
@@ -74,17 +105,36 @@ class Signature extends Equatable {
     });
   }
 
+  Future<String> get signedHex async {
+    return crypto.catchUnhandledErrors(() {
+      final watermarkedBytes = watermark == null
+          ? bytes
+          : Uint8List.fromList(
+              crypto.hexDecode(_watermarkToHex[watermark]!) + bytes);
+      var hashedBytes =
+          crypto.hashWithDigestSize(size: 256, bytes: watermarkedBytes);
+      return onSign!.call(hashedBytes);
+    });
+  }
+
   /// Base 58 encoding of this using 'edsig' prefix.
   String get edsig {
     return crypto.catchUnhandledErrors(() {
-      return crypto.encodeWithPrefix(prefix: crypto.Prefixes.edsig, bytes: Uint8List.fromList(signedBytes.toList()));
+      return crypto.encodeWithPrefix(
+          prefix: crypto.Prefixes.edsig,
+          bytes: Uint8List.fromList(signedBytes.toList()));
     });
   }
 
   /// Hexadecimal signature of this prefixed with hexadecimal payload to sign.
-  String get hexIncludingPayload {
+  Future<String> get hexIncludingPayload async {
     return crypto.catchUnhandledErrors(() {
-      return crypto.hexEncode(Uint8List.fromList(bytes + signedBytes));
+      if (onSign != null) {
+        return signedHex;
+      }
+      return Future.value(
+        crypto.hexEncode(Uint8List.fromList(bytes + signedBytes)),
+      );
     });
   }
 

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:logging/logging.dart';
 import 'package:retry/retry.dart';
 import 'package:tezart/src/core/client/tezart_client.dart';
@@ -17,6 +19,10 @@ import 'operations_list_result.dart';
 /// - [result] is an object that stores the results of the different steps of this
 /// - [source] is the [Keystore] initiating the operations
 /// - [rpcInterface] is the rpc interface that makes the calls to the tezos node
+///
+
+typedef SignCallback = Future<String> Function(Uint8List forgedData);
+
 class OperationsList {
   final log = Logger('Operation');
   final List<Operation> operations = [];
@@ -44,7 +50,8 @@ class OperationsList {
   /// It sets the simulationResult for all the elements of [operations]
   Future<void> preapply() async {
     await _catchHttpError<void>(() async {
-      if (result.signature == null) throw ArgumentError.notNull('result.signature');
+      if (result.signature == null)
+        throw ArgumentError.notNull('result.signature');
 
       final simulationResults = await rpcInterface.preapplyOperations(
         operationsList: this,
@@ -83,14 +90,15 @@ class OperationsList {
   ///
   /// It sets result.signature\
   /// It must be run after [forge], because it needs result.forgedOperation to be set
-  void sign() {
-    if (result.forgedOperation == null) throw ArgumentError.notNull('result.forgedOperation');
+  void sign({SignCallback? onSign}) {
+    if (result.forgedOperation == null)
+      throw ArgumentError.notNull('result.forgedOperation');
 
     result.signature = Signature.fromHex(
-      data: result.forgedOperation!,
-      keystore: source,
-      watermark: Watermarks.generic,
-    );
+        data: result.forgedOperation!,
+        keystore: source,
+        watermark: Watermarks.generic,
+        onSign: onSign);
   }
 
   /// Injects this
@@ -98,9 +106,11 @@ class OperationsList {
   /// It must be run after [sign] because it needs result.signature to be set
   Future<void> inject() async {
     await _catchHttpError<void>(() async {
-      if (result.signature == null) throw ArgumentError.notNull('result.signature');
+      if (result.signature == null)
+        throw ArgumentError.notNull('result.signature');
 
-      result.id = await rpcInterface.injectOperation(result.signature!.hexIncludingPayload);
+      final payload = await result.signature!.hexIncludingPayload;
+      result.id = await rpcInterface.injectOperation(payload);
     });
   }
 
@@ -115,20 +125,20 @@ class OperationsList {
   /// Executes this
   ///
   /// It runs [estimate], [simulate] and [broadcast] respectively
-  Future<void> execute() async {
+  Future<void> execute({SignCallback? onSign}) async {
     await _retryOnCounterError<void>(() async {
       await estimate();
-      await simulate();
-      await broadcast();
+      await simulate(onSign: onSign);
+      await broadcast(onSign: onSign);
     });
   }
 
   /// Broadcasts this
   ///
   /// It runs [forge], [sign] and [inject] respectively
-  Future<void> broadcast() async {
+  Future<void> broadcast({SignCallback? onSign}) async {
     await forge();
-    sign();
+    sign(onSign: onSign);
     await inject();
   }
 
@@ -151,10 +161,10 @@ class OperationsList {
   /// Simulates the execution of this using a preapply
   ///
   /// It throws an error if anything wrong happens
-  Future<void> simulate() async {
+  Future<void> simulate({SignCallback? onSign}) async {
     await forge();
-    sign();
-    await preapply();
+    sign(onSign: onSign);
+    await run();
   }
 
   /// Computes and sets the counters of [operations]
@@ -202,7 +212,8 @@ class OperationsList {
     if (result.id == null) throw ArgumentError.notNull('result.id');
 
     log.info('request to monitorOperation ${result.id}');
-    final blockHash = await rpcInterface.monitorOperation(operationId: result.id!);
+    final blockHash =
+        await rpcInterface.monitorOperation(operationId: result.id!);
     result.blockHash = blockHash;
   }
 
@@ -216,7 +227,8 @@ class OperationsList {
     final r = RetryOptions(maxAttempts: 3);
     return r.retry<T>(
       func,
-      retryIf: (e) => e is TezartNodeError && e.type == TezartNodeErrorTypes.counterError,
+      retryIf: (e) =>
+          e is TezartNodeError && e.type == TezartNodeErrorTypes.counterError,
     );
   }
 }
