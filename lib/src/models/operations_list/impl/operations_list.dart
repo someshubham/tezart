@@ -21,7 +21,7 @@ import 'operations_list_result.dart';
 /// - [rpcInterface] is the rpc interface that makes the calls to the tezos node
 ///
 
-typedef SignCallback = Future<String> Function(Uint8List forgedData);
+typedef SignCallback = Future<Uint8List> Function(Uint8List forgedData);
 
 class OperationsList {
   final log = Logger('Operation');
@@ -55,7 +55,7 @@ class OperationsList {
 
       final simulationResults = await rpcInterface.preapplyOperations(
         operationsList: this,
-        signature: result.signature!.edsig,
+        signature: await result.signature!.edsig,
       );
 
       for (var i = 0; i < simulationResults.length; i++) {
@@ -164,7 +164,7 @@ class OperationsList {
   Future<void> simulate({SignCallback? onSign}) async {
     await forge();
     sign(onSign: onSign);
-    await run();
+    await preapply();
   }
 
   /// Computes and sets the counters of [operations]
