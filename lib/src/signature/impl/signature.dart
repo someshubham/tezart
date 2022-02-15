@@ -105,7 +105,7 @@ class Signature extends Equatable {
     });
   }
 
-  Future<String> get signedHex async {
+  Future<Uint8List> get signedHex async {
     return crypto.catchUnhandledErrors(() {
       final watermarkedBytes = watermark == null
           ? bytes
@@ -118,23 +118,31 @@ class Signature extends Equatable {
   }
 
   /// Base 58 encoding of this using 'edsig' prefix.
-  String get edsig {
-    return crypto.catchUnhandledErrors(() {
+  Future<String> get edsig async {
+    return crypto.catchUnhandledErrors(() async {
+      Uint8List bytes;
+      if (onSign != null) {
+        bytes = await signedHex;
+      } else {
+        bytes = Uint8List.fromList(signedBytes.toList());
+      }
+
       return crypto.encodeWithPrefix(
-          prefix: crypto.Prefixes.edsig,
-          bytes: Uint8List.fromList(signedBytes.toList()));
+          prefix: crypto.Prefixes.edsig, bytes: bytes);
     });
   }
 
   /// Hexadecimal signature of this prefixed with hexadecimal payload to sign.
   Future<String> get hexIncludingPayload async {
-    return crypto.catchUnhandledErrors(() {
+    return crypto.catchUnhandledErrors(() async {
+      ByteList tempSignedBytes;
       if (onSign != null) {
-        return signedHex;
+        final data = await signedHex;
+        tempSignedBytes = ByteList.fromList(data);
+      } else {
+        tempSignedBytes = signedBytes;
       }
-      return Future.value(
-        crypto.hexEncode(Uint8List.fromList(bytes + signedBytes)),
-      );
+      return crypto.hexEncode(Uint8List.fromList(bytes + tempSignedBytes));
     });
   }
 
