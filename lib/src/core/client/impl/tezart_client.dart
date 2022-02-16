@@ -42,18 +42,16 @@ class TezartClient {
   ///
   /// Retries 3 times if a counter error occurs ([TezartNodeErrorTypes.counterError]).
   Future<OperationsList> transferOperation({
-    required Keystore source,
+    Keystore? source,
     required String destination,
     required int amount,
     int? customFee,
     int? customGasLimit,
     int? customStorageLimit,
     bool reveal = true,
+    String? sourceAddress,
   }) async {
     return _catchHttpError<OperationsList>(() async {
-      log.info(
-          'request transfer $amount µtz from $source.address to the destination $destination');
-
       final operationsList =
           OperationsList(source: source, rpcInterface: rpcInterface)
             ..appendOperation(
@@ -68,10 +66,11 @@ class TezartClient {
       if (reveal) {
         await _prependRevealIfNotRevealed(
           operationsList,
-          source,
+          source: source,
           customFee: customFee,
           customGasLimit: customGasLimit,
           customStorageLimit: customStorageLimit,
+          address: sourceAddress,
         );
       }
 
@@ -80,7 +79,7 @@ class TezartClient {
   }
 
   Future<OperationsList> transferFA12Tokens({
-    required Keystore source,
+    Keystore? source,
     required String destination,
     required String contractAddress,
     required int amount,
@@ -88,11 +87,12 @@ class TezartClient {
     int? customGasLimit,
     int? customStorageLimit,
     bool reveal = true,
+    String? sourceAddress,
   }) async {
     final michelineParams = {
       'prim': 'Pair',
       'args': [
-        {'string': source.address},
+        {'string': sourceAddress ?? source!.address},
         {
           'prim': 'Pair',
           'args': [
@@ -121,13 +121,12 @@ class TezartClient {
             );
 
       if (reveal) {
-        await _prependRevealIfNotRevealed(
-          operationsList,
-          source,
-          customFee: customFee,
-          customGasLimit: customGasLimit,
-          customStorageLimit: customStorageLimit,
-        );
+        await _prependRevealIfNotRevealed(operationsList,
+            source: source,
+            customFee: customFee,
+            customGasLimit: customGasLimit,
+            customStorageLimit: customStorageLimit,
+            address: sourceAddress);
       }
 
       return operationsList;
@@ -135,7 +134,7 @@ class TezartClient {
   }
 
   Future<OperationsList> transferFA2Tokens({
-    required Keystore source,
+    Keystore? source,
     required String destination,
     required String contractAddress,
     required int tokenID,
@@ -144,6 +143,7 @@ class TezartClient {
     int? customGasLimit,
     int? customStorageLimit,
     bool reveal = true,
+    String? sourceAddress,
   }) async {
     final michelineParams = {
       'entrypoint': 'transfer',
@@ -151,7 +151,7 @@ class TezartClient {
         {
           'prim': 'Pair',
           'args': [
-            {'string': source.address},
+            {'string': sourceAddress ?? source!.address},
             [
               {
                 'prim': 'Pair',
@@ -189,13 +189,12 @@ class TezartClient {
             );
 
       if (reveal) {
-        await _prependRevealIfNotRevealed(
-          operationsList,
-          source,
-          customFee: customFee,
-          customGasLimit: customGasLimit,
-          customStorageLimit: customStorageLimit,
-        );
+        await _prependRevealIfNotRevealed(operationsList,
+            source: source,
+            customFee: customFee,
+            customGasLimit: customGasLimit,
+            customStorageLimit: customStorageLimit,
+            address: sourceAddress);
       }
 
       return operationsList;
@@ -290,7 +289,7 @@ class TezartClient {
       if (reveal) {
         await _prependRevealIfNotRevealed(
           operationsList,
-          source,
+          source: source,
           customFee: customFee,
           customGasLimit: customGasLimit,
           customStorageLimit: customStorageLimit,
@@ -308,13 +307,14 @@ class TezartClient {
   }
 
   Future<void> _prependRevealIfNotRevealed(
-    OperationsList list,
-    Keystore source, {
+    OperationsList list, {
+    Keystore? source,
     int? customFee,
     int? customGasLimit,
     int? customStorageLimit,
+    String? address,
   }) async =>
-      await isKeyRevealed(source.address)
+      await isKeyRevealed(address ?? source!.address)
           ? null
           : list.prependOperation(RevealOperation(
               customFee: customFee,

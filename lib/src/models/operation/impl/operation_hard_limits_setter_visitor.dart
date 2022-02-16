@@ -8,20 +8,25 @@ import 'operation.dart';
 class OperationHardLimitsSetterVisitor implements OperationVisitor {
   @override
   Future<void> visit(Operation operation) async {
-    operation.storageLimit = operation.customStorageLimit ?? await _storage(operation);
+    operation.storageLimit =
+        operation.customStorageLimit ?? await _storage(operation);
     operation.gasLimit = operation.customGasLimit ?? await _gas(operation);
   }
 
   Future<int> _storage(Operation operation) async {
-    final hardStorageLimitPerOperation =
-        int.parse((await _rpcInterface(operation).constants())['hard_storage_limit_per_operation'] as String);
-    final sourceBalanceStorageLimitation = await _rpcInterface(operation).balance(operation.source.address);
+    final hardStorageLimitPerOperation = int.parse(
+        (await _rpcInterface(operation)
+            .constants())['hard_storage_limit_per_operation'] as String);
+    final sourceBalanceStorageLimitation = await _rpcInterface(operation)
+        .balance(operation.operationsList?.sourceAddress ??
+            operation.source!.address);
 
     return min(hardStorageLimitPerOperation, sourceBalanceStorageLimitation);
   }
 
   Future<int> _gas(Operation operation) async {
-    return int.parse((await _rpcInterface(operation).constants())['hard_gas_limit_per_operation'] as String);
+    return int.parse((await _rpcInterface(operation)
+        .constants())['hard_gas_limit_per_operation'] as String);
   }
 
   RpcInterface _rpcInterface(Operation operation) {

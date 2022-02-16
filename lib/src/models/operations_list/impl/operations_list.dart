@@ -27,10 +27,13 @@ class OperationsList {
   final log = Logger('Operation');
   final List<Operation> operations = [];
   final result = OperationsListResult();
-  final Keystore source;
+  final Keystore? source;
   final RpcInterface rpcInterface;
+  String? sourceAddress;
 
-  OperationsList({required this.source, required this.rpcInterface});
+  SignCallback? onSign;
+
+  OperationsList({this.source, required this.rpcInterface});
 
   /// Prepends [op] to this
   void prependOperation(Operation op) {
@@ -90,15 +93,16 @@ class OperationsList {
   ///
   /// It sets result.signature\
   /// It must be run after [forge], because it needs result.forgedOperation to be set
-  void sign({SignCallback? onSign}) {
+  void sign() {
     if (result.forgedOperation == null)
       throw ArgumentError.notNull('result.forgedOperation');
 
     result.signature = Signature.fromHex(
-        data: result.forgedOperation!,
-        keystore: source,
-        watermark: Watermarks.generic,
-        onSign: onSign);
+      data: result.forgedOperation!,
+      keystore: source,
+      watermark: Watermarks.generic,
+      onSign: onSign,
+    );
   }
 
   /// Injects this
@@ -125,20 +129,20 @@ class OperationsList {
   /// Executes this
   ///
   /// It runs [estimate], [simulate] and [broadcast] respectively
-  Future<void> execute({SignCallback? onSign}) async {
+  Future<void> execute() async {
     await _retryOnCounterError<void>(() async {
       await estimate();
-      await simulate(onSign: onSign);
-      await broadcast(onSign: onSign);
+      await simulate();
+      await broadcast();
     });
   }
 
   /// Broadcasts this
   ///
   /// It runs [forge], [sign] and [inject] respectively
-  Future<void> broadcast({SignCallback? onSign}) async {
+  Future<void> broadcast() async {
     await forge();
-    sign(onSign: onSign);
+    sign();
     await inject();
   }
 
@@ -161,9 +165,9 @@ class OperationsList {
   /// Simulates the execution of this using a preapply
   ///
   /// It throws an error if anything wrong happens
-  Future<void> simulate({SignCallback? onSign}) async {
+  Future<void> simulate() async {
     await forge();
-    sign(onSign: onSign);
+    sign();
     await preapply();
   }
 
@@ -173,7 +177,7 @@ class OperationsList {
     // call this method before forge, sign, preapply and run
     await _catchHttpError<void>(() async {
       final firstOperation = operations.first;
-      firstOperation.counter = await rpcInterface.counter(source.address) + 1;
+      firstOperation.counter = await rpcInterface.counter(sourceAddress ?? source!.address) + 1;
 
       for (var i = 1; i < operations.length; i++) {
         operations[i].counter = operations[i - 1].counter! + 1;

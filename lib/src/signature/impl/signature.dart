@@ -25,7 +25,7 @@ enum Watermarks {
 @immutable
 class Signature extends Equatable {
   final Uint8List bytes;
-  final Keystore keystore;
+  final Keystore? keystore;
   final Watermarks? watermark;
   final SignCallback? onSign;
 
@@ -37,7 +37,7 @@ class Signature extends Equatable {
 
   Signature._({
     required this.bytes,
-    required this.keystore,
+    this.keystore,
     this.watermark,
     this.onSign,
   });
@@ -47,7 +47,7 @@ class Signature extends Equatable {
   /// [watermark] is optional and will be ignored if missing.
   factory Signature.fromBytes({
     required Uint8List bytes,
-    required Keystore keystore,
+    Keystore? keystore,
     Watermarks? watermark,
     SignCallback? onSign,
   }) {
@@ -67,7 +67,7 @@ class Signature extends Equatable {
   /// - [data] length is odd (because it must be the hexadecimal of a list of bytes (a single byte represent two hexadecimal digits))
   factory Signature.fromHex({
     required String data,
-    required Keystore keystore,
+    Keystore? keystore,
     Watermarks? watermark,
     SignCallback? onSign,
   }) {
@@ -98,7 +98,7 @@ class Signature extends Equatable {
               crypto.hexDecode(_watermarkToHex[watermark]!) + bytes);
       var hashedBytes =
           crypto.hashWithDigestSize(size: 256, bytes: watermarkedBytes);
-      var secretKey = keystore.secretKey;
+      var secretKey = keystore!.secretKey;
       var secretKeyBytes = crypto.decodeWithoutPrefix(secretKey);
 
       return crypto.signDetached(bytes: hashedBytes, secretKey: secretKeyBytes);
