@@ -107,8 +107,11 @@ class Operation {
   }
 
   @JsonKey(name: 'public_key')
-  String? get publicKey =>
-      kind == Kinds.reveal ? opList.publicKey ?? source?.publicKey : null;
+  String? get publicKey => kind == Kinds.reveal
+      ? opList.publicKeyBytes != null
+          ? opList.encodedPublicKey
+          : source?.publicKey
+      : null;
 
   Map<String, dynamic> toJson() => _$OperationToJson(this);
 

@@ -4,12 +4,15 @@ import 'package:logging/logging.dart';
 import 'package:retry/retry.dart';
 import 'package:tezart/src/core/client/tezart_client.dart';
 import 'package:tezart/src/core/rpc/rpc_interface.dart';
+import 'package:tezart/src/crypto/impl/prefixes.dart';
 import 'package:tezart/src/keystore/keystore.dart';
 import 'package:tezart/src/models/operation/impl/operation_fees_setter_visitor.dart';
 import 'package:tezart/src/models/operation/impl/operation_hard_limits_setter_visitor.dart';
 import 'package:tezart/src/models/operation/impl/operation_limits_setter_visitor.dart';
 import 'package:tezart/src/models/operation/operation.dart';
 import 'package:tezart/src/signature/signature.dart';
+
+import 'package:tezart/src/crypto/crypto.dart' as crypto hide Prefixes;
 
 import 'operations_list_result.dart';
 
@@ -30,7 +33,7 @@ class OperationsList {
   final Keystore? source;
   final RpcInterface rpcInterface;
   final String? sourceAddress;
-  final String? publicKey;
+  final Uint8List? publicKeyBytes;
 
   final SignCallback? onSign;
 
@@ -39,10 +42,10 @@ class OperationsList {
     required this.rpcInterface,
     this.onSign,
     this.sourceAddress,
-    this.publicKey,
+    this.publicKeyBytes,
   })  : assert(onSign != null || source != null),
         assert(source != null || sourceAddress != null),
-        assert(publicKey != null || source != null);
+        assert(publicKeyBytes != null || source != null);
 
   /// Prepends [op] to this
   void prependOperation(Operation op) {
@@ -55,6 +58,13 @@ class OperationsList {
     op.operationsList = this;
     operations.add(op);
   }
+
+  String get encodedPublicKey => crypto.catchUnhandledErrors(() {
+        return crypto.encodeWithPrefix(
+          prefix: Prefixes.edpk,
+          bytes: publicKeyBytes!,
+        );
+      });
 
   /// Preapplies this
   ///

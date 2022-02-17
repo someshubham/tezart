@@ -1,5 +1,6 @@
 import 'package:logging/logging.dart';
 import 'package:memoize/memoize.dart';
+import 'package:pinenacl/ed25519.dart';
 import 'package:tezart/src/core/rpc/rpc_interface.dart';
 import 'package:tezart/src/keystore/keystore.dart';
 import 'package:tezart/src/models/operation/operation.dart';
@@ -51,7 +52,7 @@ class TezartClient {
     bool reveal = true,
     String? sourceAddress,
     SignCallback? onSign,
-    String? publicKey,
+    Uint8List? publicKey,
   }) async {
     return _catchHttpError<OperationsList>(() async {
       final operationsList = OperationsList(
@@ -59,7 +60,7 @@ class TezartClient {
         rpcInterface: rpcInterface,
         onSign: onSign,
         sourceAddress: sourceAddress,
-        publicKey: publicKey,
+        publicKeyBytes: publicKey,
       )..appendOperation(
           TransactionOperation(
             amount: amount,
@@ -95,7 +96,7 @@ class TezartClient {
     bool reveal = true,
     String? sourceAddress,
     SignCallback? onSign,
-    String? publicKey,
+    Uint8List? publicKey,
   }) async {
     if (sourceAddress == null && source == null) {
       throw ArgumentError('souce and sourceAddress both cannot be null');
@@ -121,7 +122,7 @@ class TezartClient {
         source: source,
         rpcInterface: rpcInterface,
         onSign: onSign,
-        publicKey: publicKey,
+        publicKeyBytes: publicKey,
         sourceAddress: sourceAddress,
       )..appendOperation(
           TransactionOperation(
@@ -160,7 +161,7 @@ class TezartClient {
     bool reveal = true,
     String? sourceAddress,
     SignCallback? onSign,
-    String? publicKey,
+    Uint8List? publicKey,
   }) async {
     if (sourceAddress == null && source == null) {
       if (sourceAddress == null && source == null) {
@@ -201,7 +202,7 @@ class TezartClient {
         source: source,
         rpcInterface: rpcInterface,
         onSign: onSign,
-        publicKey: publicKey,
+        publicKeyBytes: publicKey,
         sourceAddress: sourceAddress,
       )..appendOperation(
           TransactionOperation(
