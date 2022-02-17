@@ -80,9 +80,13 @@ class Operation {
 
   @JsonKey(toJson: _keystoreToAddress)
   Keystore? get source {
+    return opList.source;
+  }
+
+  OperationsList get opList {
     if (operationsList == null) throw ArgumentError.notNull('operationsList');
 
-    return operationsList!.source;
+    return operationsList!;
   }
 
   @JsonKey()
@@ -103,15 +107,16 @@ class Operation {
   }
 
   @JsonKey(name: 'public_key')
-  String? get publicKey => kind == Kinds.reveal ? source?.publicKey : null;
+  String? get publicKey =>
+      kind == Kinds.reveal ? opList.publicKey ?? source?.publicKey : null;
 
   Map<String, dynamic> toJson() => _$OperationToJson(this);
 
   static String? _toString(int? integer) =>
       integer == null ? null : integer.toString();
   static String _kindToString(Kinds kind) => EnumUtil.enumToString(kind);
-  static String? _keystoreToAddress(Keystore? keystore) =>
-      keystore == null ? null : keystore.address;
+  static String _keystoreToAddress(Keystore? keystore, String? sourceAddress) =>
+      sourceAddress ?? keystore!.address;
 
   set simulationResult(Map<String, dynamic>? value) {
     if (value == null) throw ArgumentError.notNull('simulationResult');
