@@ -29,11 +29,20 @@ class OperationsList {
   final result = OperationsListResult();
   final Keystore? source;
   final RpcInterface rpcInterface;
-  String? sourceAddress;
+  final String? sourceAddress;
+  final String? publicKey;
 
-  SignCallback? onSign;
+  final SignCallback? onSign;
 
-  OperationsList({this.source, required this.rpcInterface});
+  OperationsList({
+    this.source,
+    required this.rpcInterface,
+    this.onSign,
+    this.sourceAddress,
+    this.publicKey,
+  })  : assert(onSign != null || source != null),
+        assert(source != null || sourceAddress != null),
+        assert(publicKey != null || source != null);
 
   /// Prepends [op] to this
   void prependOperation(Operation op) {
@@ -177,7 +186,8 @@ class OperationsList {
     // call this method before forge, sign, preapply and run
     await _catchHttpError<void>(() async {
       final firstOperation = operations.first;
-      firstOperation.counter = await rpcInterface.counter(sourceAddress ?? source!.address) + 1;
+      firstOperation.counter =
+          await rpcInterface.counter(sourceAddress ?? source!.address) + 1;
 
       for (var i = 1; i < operations.length; i++) {
         operations[i].counter = operations[i - 1].counter! + 1;

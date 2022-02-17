@@ -24,7 +24,10 @@ Map<String, dynamic> _$OperationToJson(Operation instance) {
   writeNotNull('gas_limit', Operation._toString(instance.gasLimit));
   writeNotNull('fee', Operation._toString(instance.fee));
   writeNotNull('storage_limit', Operation._toString(instance.storageLimit));
-  writeNotNull('source', Operation._keystoreToAddress(instance.source));
+  writeNotNull(
+      'source',
+      Operation._keystoreToAddress(
+          instance.source, instance.opList.sourceAddress));
   writeNotNull('parameters', instance.parameters);
   writeNotNull('public_key', instance.publicKey);
   return val;

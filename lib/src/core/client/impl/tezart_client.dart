@@ -50,19 +50,25 @@ class TezartClient {
     int? customStorageLimit,
     bool reveal = true,
     String? sourceAddress,
+    SignCallback? onSign,
+    String? publicKey,
   }) async {
     return _catchHttpError<OperationsList>(() async {
-      final operationsList =
-          OperationsList(source: source, rpcInterface: rpcInterface)
-            ..appendOperation(
-              TransactionOperation(
-                amount: amount,
-                destination: destination,
-                customFee: customFee,
-                customGasLimit: customGasLimit,
-                customStorageLimit: customStorageLimit,
-              ),
-            );
+      final operationsList = OperationsList(
+        source: source,
+        rpcInterface: rpcInterface,
+        onSign: onSign,
+        sourceAddress: sourceAddress,
+        publicKey: publicKey,
+      )..appendOperation(
+          TransactionOperation(
+            amount: amount,
+            destination: destination,
+            customFee: customFee,
+            customGasLimit: customGasLimit,
+            customStorageLimit: customStorageLimit,
+          ),
+        );
       if (reveal) {
         await _prependRevealIfNotRevealed(
           operationsList,
@@ -88,7 +94,12 @@ class TezartClient {
     int? customStorageLimit,
     bool reveal = true,
     String? sourceAddress,
+    SignCallback? onSign,
+    String? publicKey,
   }) async {
+    if (sourceAddress == null && source == null) {
+      throw ArgumentError('souce and sourceAddress both cannot be null');
+    }
     final michelineParams = {
       'prim': 'Pair',
       'args': [
@@ -106,19 +117,23 @@ class TezartClient {
     return _catchHttpError<OperationsList>(() async {
       log.info('Transfering FA1.2 Tokens');
 
-      final operationsList =
-          OperationsList(source: source, rpcInterface: rpcInterface)
-            ..appendOperation(
-              TransactionOperation(
-                entrypoint: 'transfer',
-                amount: 0,
-                destination: contractAddress,
-                customFee: customFee,
-                customGasLimit: customGasLimit,
-                customStorageLimit: customStorageLimit,
-                params: michelineParams,
-              ),
-            );
+      final operationsList = OperationsList(
+        source: source,
+        rpcInterface: rpcInterface,
+        onSign: onSign,
+        publicKey: publicKey,
+        sourceAddress: sourceAddress,
+      )..appendOperation(
+          TransactionOperation(
+            entrypoint: 'transfer',
+            amount: 0,
+            destination: contractAddress,
+            customFee: customFee,
+            customGasLimit: customGasLimit,
+            customStorageLimit: customStorageLimit,
+            params: michelineParams,
+          ),
+        );
 
       if (reveal) {
         await _prependRevealIfNotRevealed(operationsList,
@@ -144,7 +159,14 @@ class TezartClient {
     int? customStorageLimit,
     bool reveal = true,
     String? sourceAddress,
+    SignCallback? onSign,
+    String? publicKey,
   }) async {
+    if (sourceAddress == null && source == null) {
+      if (sourceAddress == null && source == null) {
+        throw ArgumentError('souce and sourceAddress both cannot be null');
+      }
+    }
     final michelineParams = {
       'entrypoint': 'transfer',
       'value': [
@@ -175,18 +197,22 @@ class TezartClient {
     return _catchHttpError<OperationsList>(() async {
       log.info('Transfering FA2 Tokens');
 
-      final operationsList =
-          OperationsList(source: source, rpcInterface: rpcInterface)
-            ..appendOperation(
-              TransactionOperation(
-                amount: 0,
-                destination: contractAddress,
-                customFee: customFee,
-                customGasLimit: customGasLimit,
-                customStorageLimit: customStorageLimit,
-                params: michelineParams,
-              ),
-            );
+      final operationsList = OperationsList(
+        source: source,
+        rpcInterface: rpcInterface,
+        onSign: onSign,
+        publicKey: publicKey,
+        sourceAddress: sourceAddress,
+      )..appendOperation(
+          TransactionOperation(
+            amount: 0,
+            destination: contractAddress,
+            customFee: customFee,
+            customGasLimit: customGasLimit,
+            customStorageLimit: customStorageLimit,
+            params: michelineParams,
+          ),
+        );
 
       if (reveal) {
         await _prependRevealIfNotRevealed(operationsList,
