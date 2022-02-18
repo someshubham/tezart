@@ -25,3 +25,4 @@ export 'src/contracts/contract.dart';
 export 'src/micheline_decoder/micheline_decoder.dart';
 export 'src/micheline_encoder/micheline_encoder.dart';
 export 'src/core/rpc/rpc_interface.dart';
+export 'src/crypto/crypto.dart';
